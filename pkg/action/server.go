@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -12,17 +13,16 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/google/go-github/v32/github"
-	"github.com/oklog/run"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/mafrosis/github-exporter/pkg/config"
-	"github.com/mafrosis/github-exporter/pkg/exporter"
 	"github.com/mafrosis/github-exporter/pkg/middleware"
 	"github.com/mafrosis/github-exporter/pkg/version"
+	"github.com/oklog/run"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
 )
 
-// Server handles the server sub-command.
+// Server launches the Github Exporter webserver
 func Server(cfg *config.Config, logger log.Logger) error {
 	level.Info(logger).Log(
 		"msg", "Launching GitHub Exporter",
@@ -32,54 +32,32 @@ func Server(cfg *config.Config, logger log.Logger) error {
 		"go", version.Go,
 	)
 
-	var (
-		client *github.Client
-	)
+	cfg.RawClient = http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: cfg.Insecure},
+		},
+	}
 
-	if cfg.Target.BaseURL != "" {
-		var (
-			err error
-		)
-
-		client, err = github.NewEnterpriseClient(
-			cfg.Target.BaseURL,
-			cfg.Target.BaseURL,
+	if cfg.BaseURL != "" {
+		cfg.Client = githubv4.NewEnterpriseClient(
+			fmt.Sprintf("%sapi/graphql", cfg.BaseURL),
 			oauth2.NewClient(
 				context.WithValue(
 					context.Background(),
 					oauth2.HTTPClient,
-					&http.Client{
-						Transport: &http.Transport{
-							TLSClientConfig: &tls.Config{
-								InsecureSkipVerify: cfg.Target.Insecure,
-							},
-						},
-					},
+					&cfg.RawClient,
 				),
 				oauth2.StaticTokenSource(
-					&oauth2.Token{
-						AccessToken: cfg.Target.Token,
-					},
+					&oauth2.Token{AccessToken: cfg.Token},
 				),
 			),
 		)
-
-		if err != nil {
-			level.Error(logger).Log(
-				"msg", "Failed to parse base URL",
-				"err", err,
-			)
-
-			return err
-		}
 	} else {
-		client = github.NewClient(
+		cfg.Client = githubv4.NewClient(
 			oauth2.NewClient(
 				context.Background(),
 				oauth2.StaticTokenSource(
-					&oauth2.Token{
-						AccessToken: cfg.Target.Token,
-					},
+					&oauth2.Token{AccessToken: cfg.Token},
 				),
 			),
 		)
@@ -90,7 +68,7 @@ func Server(cfg *config.Config, logger log.Logger) error {
 	{
 		server := &http.Server{
 			Addr:         cfg.Server.Addr,
-			Handler:      handler(cfg, logger, client),
+			Handler:      handler(cfg, logger),
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: cfg.Server.Timeout,
 		}
@@ -139,82 +117,14 @@ func Server(cfg *config.Config, logger log.Logger) error {
 	return gr.Run()
 }
 
-func handler(cfg *config.Config, logger log.Logger, client *github.Client) *chi.Mux {
+func handler(cfg *config.Config, logger log.Logger) *chi.Mux {
 	mux := chi.NewRouter()
 	mux.Use(middleware.Recoverer(logger))
 	mux.Use(middleware.RealIP)
 	mux.Use(middleware.Timeout)
 	mux.Use(middleware.Cache)
 
-	if cfg.Collector.Orgs {
-		level.Debug(logger).Log(
-			"msg", "Org collector registered",
-		)
-
-		registry.MustRegister(exporter.NewOrgCollector(
-			logger,
-			client,
-			requestFailures,
-			requestDuration,
-			cfg.Target,
-		))
-	}
-
-	if cfg.Collector.Repos {
-		level.Debug(logger).Log(
-			"msg", "Repo collector registered",
-		)
-
-		registry.MustRegister(exporter.NewRepoCollector(
-			logger,
-			client,
-			requestFailures,
-			requestDuration,
-			cfg.Target,
-		))
-	}
-
-	if cfg.Collector.Actions {
-		level.Debug(logger).Log(
-			"msg", "Action collector registered",
-		)
-
-		registry.MustRegister(exporter.NewActionCollector(
-			logger,
-			client,
-			requestFailures,
-			requestDuration,
-			cfg.Target,
-		))
-	}
-
-	if cfg.Collector.Packages {
-		level.Debug(logger).Log(
-			"msg", "Package collector registered",
-		)
-
-		registry.MustRegister(exporter.NewPackageCollector(
-			logger,
-			client,
-			requestFailures,
-			requestDuration,
-			cfg.Target,
-		))
-	}
-
-	if cfg.Collector.Storage {
-		level.Debug(logger).Log(
-			"msg", "Storage collector registered",
-		)
-
-		registry.MustRegister(exporter.NewStorageCollector(
-			logger,
-			client,
-			requestFailures,
-			requestDuration,
-			cfg.Target,
-		))
-	}
+	// TODO add an exporter here
 
 	reg := promhttp.HandlerFor(
 		registry,
