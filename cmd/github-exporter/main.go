@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/promhippie/github_exporter/pkg/command"
+	"github.com/mafrosis/github-exporter/pkg/command"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v32/github"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/promhippie/github_exporter/pkg/config"
+	"github.com/mafrosis/github-exporter/pkg/config"
 )
 
 // RepoCollector collects metrics about the servers.

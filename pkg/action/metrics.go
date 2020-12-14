@@ -6,7 +6,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/promhippie/github_exporter/pkg/version"
+	"github.com/mafrosis/github-exporter/pkg/version"
 )
 
 var (

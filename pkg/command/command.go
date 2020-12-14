@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log/level"
-	"github.com/promhippie/github_exporter/pkg/action"
-	"github.com/promhippie/github_exporter/pkg/config"
-	"github.com/promhippie/github_exporter/pkg/version"
 	"github.com/urfave/cli/v2"
+	"github.com/mafrosis/github-exporter/pkg/action"
+	"github.com/mafrosis/github-exporter/pkg/config"
+	"github.com/mafrosis/github-exporter/pkg/version"
 )
 
 var (
@@ -22,10 +22,14 @@ func Run() error {
 	cfg := config.Load()
 
 	app := &cli.App{
-		Name:    "github_exporter",
+		Name:    "ghe-exporter",
 		Version: version.String,
-		Usage:   "GitHub Exporter",
+		Usage:   "GitHub Enterprise Exporter",
 		Authors: []*cli.Author{
+			{
+				Name:  "Matt Black",
+				Email: "blackm@anz.com",
+			},
 			{
 				Name:  "Thomas Boerger",
 				Email: "thomas@webhippie.de",

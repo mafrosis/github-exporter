@@ -15,10 +15,10 @@ import (
 	"github.com/google/go-github/v32/github"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/promhippie/github_exporter/pkg/config"
-	"github.com/promhippie/github_exporter/pkg/exporter"
-	"github.com/promhippie/github_exporter/pkg/middleware"
-	"github.com/promhippie/github_exporter/pkg/version"
+	"github.com/mafrosis/github-exporter/pkg/config"
+	"github.com/mafrosis/github-exporter/pkg/exporter"
+	"github.com/mafrosis/github-exporter/pkg/middleware"
+	"github.com/mafrosis/github-exporter/pkg/version"
 	"golang.org/x/oauth2"
 )
 

@@ -1,4 +1,4 @@
-module github.com/promhippie/github_exporter
+module github.service.anz/ecp/github-enterprise-exporter
 
 go 1.14
 
